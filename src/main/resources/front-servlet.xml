@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+ 		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd   http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate" depends-on="dataSource">
+        <constructor-arg ref="dataSource"/>
+    </bean>
+
+    <bean id="namedParameterJdbcTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
+        <constructor-arg ref="dataSource"/>
+    </bean>
+    <context:component-scan base-package="kz.zhabassov.project"/>
+    <context:property-placeholder location="config.properties"/>
+    <mvc:resources mapping="/view/**" location="view" />
+    <mvc:annotation-driven/>
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/view/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+    <bean id="gameDao" class="kz.zhabassov.project.dao.GameDao">
+        <property name="jdbcTemplate" ref="jdbcTemplate"/>
+        <property name="namedParameterJdbcTemplate" ref="namedParameterJdbcTemplate"/>
+    </bean>
+    <bean id="penaltyDao" class="kz.zhabassov.project.dao.PenaltyDao">
+        <property name="jdbcTemplate" ref="jdbcTemplate"/>
+        <property name="namedParameterJdbcTemplate" ref="namedParameterJdbcTemplate"/>
+    </bean>
+    <bean id="penaltyOfPlayerInGameDao" class="kz.zhabassov.project.dao.PenaltyOfPlayerInGameDao">
+        <property name="jdbcTemplate" ref="jdbcTemplate"/>
+        <property name="namedParameterJdbcTemplate" ref="namedParameterJdbcTemplate"/>
+    </bean>
+    <bean id="playerDao" class="kz.zhabassov.project.dao.PlayerDao">
+        <property name="jdbcTemplate" ref="jdbcTemplate"/>
+        <property name="namedParameterJdbcTemplate" ref="namedParameterJdbcTemplate"/>
+    </bean>
+    <bean id="teamDao" class="kz.zhabassov.project.dao.TeamDao">
+        <property name="jdbcTemplate" ref="jdbcTemplate"/>
+        <property name="namedParameterJdbcTemplate" ref="namedParameterJdbcTemplate"/>
+    </bean>
+
+
+    <bean id="gameService" class="kz.zhabassov.project.service.GameService">
+        <property name="gameDao" ref="gameDao"/>
+    </bean>
+
+    <bean id="playerService" class="kz.zhabassov.project.service.PlayerService">
+        <property name="playerDao" ref="playerDao"/>
+    </bean>
+
+
+    <bean id="homeController" class="kz.zhabassov.project.controller.HomeController">
+        <property name="gameService" ref="gameService"/>
+        <property name="playerService" ref="playerService"/>
+    </bean>
+
+    <beans profile="prod">
+        <bean id="hikariConfig" class="com.zaxxer.hikari.HikariConfig">
+            <property name="driverClassName" value="${db.driverClassName}"/>
+            <property name="jdbcUrl" value="${db.url}"/>
+            <property name="dataSourceProperties">
+                <props>
+                    <prop key="user">${db.username}</prop>
+                    <prop key="password">${db.password}</prop>
+                </props>
+            </property>
+        </bean>
+
+
+        <bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close" depends-on="hikariConfig">
+            <constructor-arg ref="hikariConfig"/>
+        </bean>
+    </beans>
+
+    <beans profile="dev">
+        <bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
+            <property name="driverClass" value="org.h2.Driver"/>
+            <property name="url" value="jdbc:h2:mem:test;MODE=Oracle;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;mv_store=false"/>
+            <property name="username" value="sa"/>
+            <property name="password" value=""/>
+        </bean>
+        <jdbc:initialize-database data-source="dataSource" ignore-failures="DROPS">
+            <jdbc:script location="classpath:h2/V0_1__create_tables.sql" />
+        </jdbc:initialize-database>
+    </beans>
+</beans>
